@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subtitle Sync — SRT Timing Corrector</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --accent: #e50914;
+      --accent-hover: #ff1a24;
+      --text: #f0f0f0;
+      --muted: #8a8fa8;
+      --border: #2e3350;
+      --success: #22c55e;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    header h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    header p {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px;
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(229,9,20,0.05);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+
+    .drop-zone h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .drop-zone p {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .file-chosen {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      color: var(--success);
+      font-weight: 500;
+    }
+
+    .file-chosen span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .file-chosen button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 2px 4px;
+    }
+
+    .file-chosen button:hover { color: var(--accent); }
+
+    /* Offset input */
+    .field label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .offset-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .offset-row input[type="number"] {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 1.1rem;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s;
+      -moz-appearance: textfield;
+    }
+
+    .offset-row input[type="number"]::-webkit-inner-spin-button,
+    .offset-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .offset-row input[type="number"]:focus { border-color: var(--accent); }
+
+    .direction-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dir-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0 14px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+
+    .dir-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .dir-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* Action button */
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      letter-spacing: 0.2px;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Success state */
+    .success-box {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      color: var(--success);
+      font-weight: 500;
+    }
+
+    .success-box.show { display: flex; }
+
+    footer {
+      margin-top: 48px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Subtitle <span>Sync</span></h1>
+  <p>Fix SRT subtitle timing — upload, adjust, download.</p>
+</header>
+
+<div class="card">
+
+  <!-- File upload -->
+  <div class="field">
+    <label>SRT File</label>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".srt" />
+      <div class="drop-icon">📄</div>
+      <h2>Drop your .srt file here</h2>
+      <p>or click to browse</p>
+    </div>
+    <div class="file-chosen" id="fileChosen" style="display:none;">
+      <span id="fileName"></span>
+      <button id="clearFile" title="Remove file">✕</button>
+    </div>
+  </div>
+
+  <!-- Offset -->
+  <div class="field">
+    <label>Time Offset (seconds)</label>
+    <div class="offset-row">
+      <input type="number" id="offsetInput" value="7" min="0" step="0.1" placeholder="e.g. 7.5" />
+      <div class="direction-btns">
+        <button class="dir-btn active" id="btnDelay" title="Subtitles appear too early — delay them">⏩ Delay</button>
+        <button class="dir-btn" id="btnAdvance" title="Subtitles appear too late — advance them">⏪ Advance</button>
+      </div>
+    </div>
+    <p class="hint" id="hintText">Subtitles appear too early? Use <strong>Delay</strong>. Too late? Use <strong>Advance</strong>.</p>
+  </div>
+
+  <!-- Submit -->
+  <button class="btn-primary" id="processBtn" disabled>Download Fixed Subtitle</button>
+
+  <div class="success-box" id="successBox">
+    ✅ <span id="successMsg"></span>
+  </div>
+
+</div>
+
+<footer>Works entirely in your browser — no files are uploaded to any server.</footer>
+
+<script>
+  const fileInput   = document.getElementById('fileInput');
+  const dropZone    = document.getElementById('dropZone');
+  const fileChosen  = document.getElementById('fileChosen');
+  const fileNameEl  = document.getElementById('fileName');
+  const clearFile   = document.getElementById('clearFile');
+  const offsetInput = document.getElementById('offsetInput');
+  const btnDelay    = document.getElementById('btnDelay');
+  const btnAdvance  = document.getElementById('btnAdvance');
+  const processBtn  = document.getElementById('processBtn');
+  const successBox  = document.getElementById('successBox');
+  const successMsg  = document.getElementById('successMsg');
+
+  let selectedFile = null;
+  let direction = 'delay'; // 'delay' or 'advance'
+
+  // Drag-and-drop
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.toLowerCase().endsWith('.srt')) setFile(f);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    fileNameEl.textContent = f.name;
+    dropZone.style.display = 'none';
+    fileChosen.style.display = 'flex';
+    updateBtn();
+    successBox.classList.remove('show');
+  }
+
+  clearFile.addEventListener('click', () => {
+    selectedFile = null;
+    fileInput.value = '';
+    dropZone.style.display = '';
+    fileChosen.style.display = 'none';
+    updateBtn();
+    successBox.classList.remove('show');
+  });
+
+  // Direction toggle
+  btnDelay.addEventListener('click', () => setDirection('delay'));
+  btnAdvance.addEventListener('click', () => setDirection('advance'));
+
+  function setDirection(d) {
+    direction = d;
+    btnDelay.classList.toggle('active', d === 'delay');
+    btnAdvance.classList.toggle('active', d === 'advance');
+  }
+
+  function updateBtn() {
+    processBtn.disabled = !selectedFile;
+  }
+
+  // SRT processing
+  function parseTime(t) {
+    const [h, m, rest] = t.split(':');
+    const [s, ms] = rest.split(',');
+    return parseInt(h)*3600000 + parseInt(m)*60000 + parseInt(s)*1000 + parseInt(ms);
+  }
+
+  function formatTime(ms) {
+    ms = Math.max(0, ms);
+    const h  = Math.floor(ms / 3600000); ms %= 3600000;
+    const m  = Math.floor(ms / 60000);   ms %= 60000;
+    const s  = Math.floor(ms / 1000);    ms %= 1000;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
+  }
+
+  function shiftSrt(content, shiftMs) {
+    const pattern = /(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})/g;
+    return content.replace(pattern, (_, start, end) =>
+      `${formatTime(parseTime(start) + shiftMs)} --> ${formatTime(parseTime(end) + shiftMs)}`
+    );
+  }
+
+  processBtn.addEventListener('click', () => {
+    if (!selectedFile) return;
+
+    const offsetSec = parseFloat(offsetInput.value) || 0;
+    const shiftMs   = Math.round(offsetSec * 1000) * (direction === 'delay' ? 1 : -1);
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const shifted  = shiftSrt(e.target.result, shiftMs);
+      const blob     = new Blob([shifted], { type: 'text/plain' });
+      const url      = URL.createObjectURL(blob);
+      const a        = document.createElement('a');
+      a.href         = url;
+      a.download     = selectedFile.name;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      const dir = direction === 'delay' ? 'delayed' : 'advanced';
+      successMsg.textContent = `Downloaded "${selectedFile.name}" — ${dir} by ${offsetSec}s.`;
+      successBox.classList.add('show');
+    };
+    reader.readAsText(selectedFile);
+  });
+</script>
+</body>
+</html>
