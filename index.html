@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Subtitle Sync — SRT Timing Corrector</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -33,7 +34,7 @@
 
     header {
       text-align: center;
-      margin-bottom: 48px;
+      margin-bottom: 40px;
     }
 
     header h1 {
@@ -48,6 +49,37 @@
       color: var(--muted);
       margin-top: 8px;
       font-size: 1rem;
+    }
+
+    /* Mode tabs */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      gap: 4px;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 12px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
     }
 
     .card {
@@ -87,21 +119,9 @@
       height: 100%;
     }
 
-    .drop-icon {
-      font-size: 2.5rem;
-      margin-bottom: 12px;
-    }
-
-    .drop-zone h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .drop-zone p {
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
+    .drop-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .drop-zone h2 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+    .drop-zone p  { font-size: 0.85rem; color: var(--muted); }
 
     .file-chosen {
       display: flex;
@@ -125,9 +145,38 @@
       font-size: 1rem;
       line-height: 1;
       padding: 2px 4px;
+      flex-shrink: 0;
     }
 
     .file-chosen button:hover { color: var(--accent); }
+
+    /* Batch file list */
+    .batch-list {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .batch-list-item {
+      font-size: 0.85rem;
+      color: var(--success);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .batch-list-item::before { content: '✓'; font-size: 0.75rem; flex-shrink: 0; }
+
+    .batch-count {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
 
     /* Offset input */
     .field label {
@@ -140,10 +189,7 @@
       margin-bottom: 8px;
     }
 
-    .offset-row {
-      display: flex;
-      gap: 8px;
-    }
+    .offset-row { display: flex; gap: 8px; }
 
     .offset-row input[type="number"] {
       flex: 1;
@@ -161,13 +207,9 @@
 
     .offset-row input[type="number"]::-webkit-inner-spin-button,
     .offset-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
-
     .offset-row input[type="number"]:focus { border-color: var(--accent); }
 
-    .direction-btns {
-      display: flex;
-      gap: 6px;
-    }
+    .direction-btns { display: flex; gap: 6px; }
 
     .dir-btn {
       background: var(--surface2);
@@ -183,18 +225,9 @@
     }
 
     .dir-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .dir-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-    .dir-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-
-    .hint {
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-top: 6px;
-    }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
 
     /* Action button */
     .btn-primary {
@@ -236,6 +269,12 @@
       font-size: 0.8rem;
       color: var(--muted);
     }
+
+    .hidden { display: none !important; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   </style>
 </head>
 <body>
@@ -245,37 +284,66 @@
   <p>Fix SRT subtitle timing — upload, adjust, download.</p>
 </header>
 
+<!-- Mode tabs -->
+<div class="tabs">
+  <div class="tab active" id="tabSingle">📄 Single File</div>
+  <div class="tab" id="tabBatch">📁 Batch (Folder)</div>
+</div>
+
 <div class="card">
 
-  <!-- File upload -->
-  <div class="field">
-    <label>SRT File</label>
-    <div class="drop-zone" id="dropZone">
-      <input type="file" id="fileInput" accept=".srt" />
-      <div class="drop-icon">📄</div>
-      <h2>Drop your .srt file here</h2>
-      <p>or click to browse</p>
-    </div>
-    <div class="file-chosen" id="fileChosen" style="display:none;">
-      <span id="fileName"></span>
-      <button id="clearFile" title="Remove file">✕</button>
+  <!-- ── SINGLE FILE ── -->
+  <div id="singleMode">
+    <div class="field">
+      <label>SRT File</label>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".srt" />
+        <div class="drop-icon">📄</div>
+        <h2>Drop your .srt file here</h2>
+        <p>or click to browse</p>
+      </div>
+      <div class="file-chosen" id="fileChosen" style="display:none;">
+        <span id="fileName"></span>
+        <button id="clearFile" title="Remove">✕</button>
+      </div>
     </div>
   </div>
 
-  <!-- Offset -->
+  <!-- ── BATCH MODE ── -->
+  <div id="batchMode" class="hidden">
+    <div class="field">
+      <label>Folder containing SRT files</label>
+      <div class="drop-zone" id="batchDropZone">
+        <input type="file" id="folderInput" webkitdirectory multiple />
+        <div class="drop-icon">📁</div>
+        <h2>Select a folder</h2>
+        <p>Only .srt files will be processed</p>
+      </div>
+      <div id="batchChosen" style="display:none;">
+        <div class="batch-list" id="batchList"></div>
+        <div class="batch-count" id="batchCount"></div>
+        <div style="margin-top:8px;">
+          <button class="file-chosen" id="clearBatch" style="display:inline-flex; width:auto; color:var(--muted); font-size:0.8rem; cursor:pointer; background:none; border:none; gap:6px; padding:0;">
+            ✕ Clear selection
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SHARED: Offset + Direction ── -->
   <div class="field">
     <label>Time Offset (seconds)</label>
     <div class="offset-row">
-      <input type="number" id="offsetInput" value="7" min="0" step="0.1" placeholder="e.g. 7.5" />
+      <input type="number" id="offsetInput" value="0" min="0" step="0.1" placeholder="e.g. 7.5" />
       <div class="direction-btns">
-        <button class="dir-btn active" id="btnDelay" title="Subtitles appear too early — delay them">⏩ Delay</button>
-        <button class="dir-btn" id="btnAdvance" title="Subtitles appear too late — advance them">⏪ Advance</button>
+        <button class="dir-btn active" id="btnDelay">⏩ Delay</button>
+        <button class="dir-btn" id="btnAdvance">⏪ Advance</button>
       </div>
     </div>
-    <p class="hint" id="hintText">Subtitles appear too early? Use <strong>Delay</strong>. Too late? Use <strong>Advance</strong>.</p>
+    <p class="hint">Subtitles appear too early? Use <strong>Delay</strong>. Too late? Use <strong>Advance</strong>.</p>
   </div>
 
-  <!-- Submit -->
   <button class="btn-primary" id="processBtn" disabled>Download Fixed Subtitle</button>
 
   <div class="success-box" id="successBox">
@@ -287,42 +355,70 @@
 <footer>Works entirely in your browser — no files are uploaded to any server.</footer>
 
 <script>
-  const fileInput   = document.getElementById('fileInput');
-  const dropZone    = document.getElementById('dropZone');
-  const fileChosen  = document.getElementById('fileChosen');
-  const fileNameEl  = document.getElementById('fileName');
-  const clearFile   = document.getElementById('clearFile');
-  const offsetInput = document.getElementById('offsetInput');
-  const btnDelay    = document.getElementById('btnDelay');
-  const btnAdvance  = document.getElementById('btnAdvance');
-  const processBtn  = document.getElementById('processBtn');
-  const successBox  = document.getElementById('successBox');
-  const successMsg  = document.getElementById('successMsg');
+  // ── State ──────────────────────────────────────────────
+  let mode = 'single';          // 'single' | 'batch'
+  let selectedFile   = null;    // single mode
+  let selectedSrts   = [];      // batch mode: [{name, file}]
+  let direction      = 'delay';
 
-  let selectedFile = null;
-  let direction = 'delay'; // 'delay' or 'advance'
+  // ── Elements ───────────────────────────────────────────
+  const tabSingle    = document.getElementById('tabSingle');
+  const tabBatch     = document.getElementById('tabBatch');
+  const singleMode   = document.getElementById('singleMode');
+  const batchMode    = document.getElementById('batchMode');
 
-  // Drag-and-drop
+  const dropZone     = document.getElementById('dropZone');
+  const fileInput    = document.getElementById('fileInput');
+  const fileChosen   = document.getElementById('fileChosen');
+  const fileNameEl   = document.getElementById('fileName');
+  const clearFile    = document.getElementById('clearFile');
+
+  const batchDropZone= document.getElementById('batchDropZone');
+  const folderInput  = document.getElementById('folderInput');
+  const batchChosen  = document.getElementById('batchChosen');
+  const batchList    = document.getElementById('batchList');
+  const batchCount   = document.getElementById('batchCount');
+  const clearBatch   = document.getElementById('clearBatch');
+
+  const offsetInput  = document.getElementById('offsetInput');
+  const btnDelay     = document.getElementById('btnDelay');
+  const btnAdvance   = document.getElementById('btnAdvance');
+  const processBtn   = document.getElementById('processBtn');
+  const successBox   = document.getElementById('successBox');
+  const successMsg   = document.getElementById('successMsg');
+
+  // ── Tabs ───────────────────────────────────────────────
+  tabSingle.addEventListener('click', () => switchMode('single'));
+  tabBatch.addEventListener('click',  () => switchMode('batch'));
+
+  function switchMode(m) {
+    mode = m;
+    tabSingle.classList.toggle('active', m === 'single');
+    tabBatch.classList.toggle('active',  m === 'batch');
+    singleMode.classList.toggle('hidden', m !== 'single');
+    batchMode.classList.toggle('hidden',  m !== 'batch');
+    processBtn.textContent = m === 'single' ? 'Download Fixed Subtitle' : 'Download Fixed Subtitles (.zip)';
+    successBox.classList.remove('show');
+    updateBtn();
+  }
+
+  // ── Single file ────────────────────────────────────────
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
   dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
+    e.preventDefault(); dropZone.classList.remove('dragover');
     const f = e.dataTransfer.files[0];
     if (f && f.name.toLowerCase().endsWith('.srt')) setFile(f);
   });
-
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) setFile(fileInput.files[0]);
-  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
 
   function setFile(f) {
     selectedFile = f;
     fileNameEl.textContent = f.name;
     dropZone.style.display = 'none';
     fileChosen.style.display = 'flex';
-    updateBtn();
     successBox.classList.remove('show');
+    updateBtn();
   }
 
   clearFile.addEventListener('click', () => {
@@ -330,25 +426,53 @@
     fileInput.value = '';
     dropZone.style.display = '';
     fileChosen.style.display = 'none';
-    updateBtn();
     successBox.classList.remove('show');
+    updateBtn();
   });
 
-  // Direction toggle
-  btnDelay.addEventListener('click', () => setDirection('delay'));
+  // ── Batch folder ───────────────────────────────────────
+  folderInput.addEventListener('change', () => {
+    const srts = Array.from(folderInput.files).filter(f => f.name.toLowerCase().endsWith('.srt'));
+    if (!srts.length) return;
+    setBatchFiles(srts);
+  });
+
+  function setBatchFiles(files) {
+    selectedSrts = files.map(f => ({ name: f.name, file: f }));
+    batchList.innerHTML = selectedSrts.map(f =>
+      `<div class="batch-list-item">${f.name}</div>`
+    ).join('');
+    batchCount.textContent = `${selectedSrts.length} SRT file${selectedSrts.length !== 1 ? 's' : ''} selected`;
+    batchDropZone.style.display = 'none';
+    batchChosen.style.display = '';
+    successBox.classList.remove('show');
+    updateBtn();
+  }
+
+  clearBatch.addEventListener('click', () => {
+    selectedSrts = [];
+    folderInput.value = '';
+    batchDropZone.style.display = '';
+    batchChosen.style.display = 'none';
+    successBox.classList.remove('show');
+    updateBtn();
+  });
+
+  // ── Direction ──────────────────────────────────────────
+  btnDelay.addEventListener('click',   () => setDirection('delay'));
   btnAdvance.addEventListener('click', () => setDirection('advance'));
 
   function setDirection(d) {
     direction = d;
-    btnDelay.classList.toggle('active', d === 'delay');
+    btnDelay.classList.toggle('active',   d === 'delay');
     btnAdvance.classList.toggle('active', d === 'advance');
   }
 
   function updateBtn() {
-    processBtn.disabled = !selectedFile;
+    processBtn.disabled = mode === 'single' ? !selectedFile : selectedSrts.length === 0;
   }
 
-  // SRT processing
+  // ── SRT core ───────────────────────────────────────────
   function parseTime(t) {
     const [h, m, rest] = t.split(':');
     const [s, ms] = rest.split(',');
@@ -357,42 +481,67 @@
 
   function formatTime(ms) {
     ms = Math.max(0, ms);
-    const h  = Math.floor(ms / 3600000); ms %= 3600000;
-    const m  = Math.floor(ms / 60000);   ms %= 60000;
-    const s  = Math.floor(ms / 1000);    ms %= 1000;
+    const h = Math.floor(ms / 3600000); ms %= 3600000;
+    const m = Math.floor(ms / 60000);   ms %= 60000;
+    const s = Math.floor(ms / 1000);    ms %= 1000;
     return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
   }
 
   function shiftSrt(content, shiftMs) {
-    const pattern = /(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})/g;
-    return content.replace(pattern, (_, start, end) =>
-      `${formatTime(parseTime(start) + shiftMs)} --> ${formatTime(parseTime(end) + shiftMs)}`
+    return content.replace(/(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})/g,
+      (_, start, end) => `${formatTime(parseTime(start) + shiftMs)} --> ${formatTime(parseTime(end) + shiftMs)}`
     );
   }
 
-  processBtn.addEventListener('click', () => {
-    if (!selectedFile) return;
+  function readFile(file) {
+    return new Promise(resolve => {
+      const r = new FileReader();
+      r.onload = e => resolve(e.target.result);
+      r.readAsText(file);
+    });
+  }
 
+  // ── Process ────────────────────────────────────────────
+  processBtn.addEventListener('click', async () => {
     const offsetSec = parseFloat(offsetInput.value) || 0;
     const shiftMs   = Math.round(offsetSec * 1000) * (direction === 'delay' ? 1 : -1);
+    const dir       = direction === 'delay' ? 'delayed' : 'advanced';
 
-    const reader = new FileReader();
-    reader.onload = e => {
-      const shifted  = shiftSrt(e.target.result, shiftMs);
-      const blob     = new Blob([shifted], { type: 'text/plain' });
-      const url      = URL.createObjectURL(blob);
-      const a        = document.createElement('a');
-      a.href         = url;
-      a.download     = selectedFile.name;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      const dir = direction === 'delay' ? 'delayed' : 'advanced';
+    if (mode === 'single') {
+      const content = await readFile(selectedFile);
+      const shifted = shiftSrt(content, shiftMs);
+      triggerDownload(new Blob([shifted], { type: 'text/plain' }), selectedFile.name);
       successMsg.textContent = `Downloaded "${selectedFile.name}" — ${dir} by ${offsetSec}s.`;
       successBox.classList.add('show');
-    };
-    reader.readAsText(selectedFile);
+
+    } else {
+      processBtn.disabled = true;
+      processBtn.textContent = 'Zipping…';
+
+      const zip = new JSZip();
+      for (const { name, file } of selectedSrts) {
+        const content = await readFile(file);
+        zip.file(name, shiftSrt(content, shiftMs));
+      }
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      triggerDownload(blob, 'subtitles_fixed.zip');
+
+      processBtn.textContent = 'Download Fixed Subtitles (.zip)';
+      processBtn.disabled = false;
+      successMsg.textContent = `Downloaded ${selectedSrts.length} file${selectedSrts.length !== 1 ? 's' : ''} as subtitles_fixed.zip — ${dir} by ${offsetSec}s.`;
+      successBox.classList.add('show');
+    }
   });
+
+  function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 </script>
 </body>
 </html>
