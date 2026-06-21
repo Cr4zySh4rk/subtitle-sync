@@ -1,0 +1,57 @@
+<svg width="880" height="700" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, system-ui, sans-serif">
+  <rect width="880" height="700" fill="#0f1117"/>
+
+  <!-- Header -->
+  <text x="440" y="72" text-anchor="middle" font-size="38" font-weight="800" fill="#f0f0f0">Subtitle <tspan fill="#e50914">Sync</tspan></text>
+  <text x="440" y="104" text-anchor="middle" font-size="16" fill="#8a8fa8">Fix SRT subtitle timing — upload, adjust, download.</text>
+
+  <!-- Tabs -->
+  <rect x="180" y="126" width="520" height="50" rx="12" fill="#1a1d27" stroke="#2e3350" stroke-width="1"/>
+  <text x="311" y="157" text-anchor="middle" font-size="14" font-weight="600" fill="#8a8fa8">📄 Single File</text>
+  <!-- Active tab -->
+  <rect x="442" y="130" width="254" height="42" rx="8" fill="#e50914"/>
+  <text x="569" y="157" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">📁 Batch (Folder)</text>
+
+  <!-- Card -->
+  <rect x="180" y="190" width="520" height="476" rx="12" fill="#1a1d27" stroke="#2e3350" stroke-width="1"/>
+
+  <!-- Folder label -->
+  <text x="212" y="228" font-size="11" font-weight="700" fill="#8a8fa8" letter-spacing="0.5">FOLDER CONTAINING SRT FILES</text>
+
+  <!-- File list -->
+  <rect x="212" y="238" width="456" height="186" rx="8" fill="#22263a"/>
+  <!-- File items -->
+  <text x="232" y="270" font-size="13" fill="#22c55e">✓  Marvel's Daredevil S01E01 Into the Ring.en.srt</text>
+  <text x="232" y="296" font-size="13" fill="#22c55e">✓  Marvel's Daredevil S01E02 Cut Man.en.srt</text>
+  <text x="232" y="322" font-size="13" fill="#22c55e">✓  Marvel's Daredevil S01E03 Rabbit in a Snow Storm.en.srt</text>
+  <text x="232" y="348" font-size="13" fill="#22c55e">✓  Marvel's Daredevil S01E04 In the Blood.en.srt</text>
+  <text x="232" y="374" font-size="13" fill="#22c55e">✓  Marvel's Daredevil S01E05 World On Fire.en.srt</text>
+  <text x="232" y="400" font-size="13" fill="#22c55e">✓  Marvel's Daredevil S01E06 Condemned.en.srt</text>
+  <!-- Count -->
+  <text x="212" y="444" font-size="12" fill="#8a8fa8">13 SRT files selected</text>
+
+  <!-- Offset label -->
+  <text x="212" y="478" font-size="11" font-weight="700" fill="#8a8fa8" letter-spacing="0.5">TIME OFFSET (SECONDS)</text>
+
+  <!-- Offset input -->
+  <rect x="212" y="488" width="240" height="46" rx="8" fill="#22263a" stroke="#2e3350" stroke-width="1"/>
+  <text x="232" y="518" font-size="20" font-weight="600" fill="#f0f0f0">7.5</text>
+
+  <!-- Delay btn (active) -->
+  <rect x="460" y="488" width="100" height="46" rx="8" fill="#e50914"/>
+  <text x="510" y="517" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">⏩ Delay</text>
+
+  <!-- Advance btn -->
+  <rect x="568" y="488" width="100" height="46" rx="8" fill="#22263a" stroke="#2e3350" stroke-width="1"/>
+  <text x="618" y="517" text-anchor="middle" font-size="13" font-weight="700" fill="#f0f0f0">⏪ Advance</text>
+
+  <!-- Hint -->
+  <text x="212" y="554" font-size="12" fill="#8a8fa8">Subtitles appear too early? Use <tspan font-weight="700" fill="#f0f0f0">Delay</tspan>. Too late? Use <tspan font-weight="700" fill="#f0f0f0">Advance</tspan>.</text>
+
+  <!-- Download button (active) -->
+  <rect x="212" y="574" width="456" height="50" rx="8" fill="#e50914"/>
+  <text x="440" y="605" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">Download Fixed Subtitles (.zip)</text>
+
+  <!-- Footer -->
+  <text x="440" y="682" text-anchor="middle" font-size="12" fill="#8a8fa8">Works entirely in your browser — no files are uploaded to any server.</text>
+</svg>
